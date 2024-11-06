@@ -15,7 +15,6 @@ FetchContent_MakeAvailable(SFML)
 
 add_executable(main src/main.cpp 
 src/Snake.cpp headers/Snake.hpp 
-headers/Direction.hpp 
 headers/Window.hpp src/Window.cpp 
 headers/World.hpp src/World.cpp 
 headers/Game.hpp src/Game.cpp)

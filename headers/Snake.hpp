@@ -1,7 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 
-#include "Direction.hpp"
 #ifndef SNAKE_H
 #define SNAKE_H
 enum class Direction { None, Up, Down, Left, Right };
