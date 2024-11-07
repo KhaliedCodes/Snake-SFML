@@ -2,20 +2,20 @@
 #include <iostream>
 
 // #include "../headers/Game.hpp"
-#include "../headers/Game.hpp"
+#include "Game.hpp"
 using namespace sf;
 
 int main() {
     srand(time(0));
     // Program entry point.
-    Game game;  // Creating our game object.
-    while (!game.GetWindow()->IsDone()) {
+    Game();  // Creating our game object.
+    while (!IsDone()) {
         // Game loop.
 
-        game.HandleInput();
-        game.Update();
-        game.Render();
-        game.RestartClock();
+        HandleInput();
+        UpdateGame();
+        RenderGame();
+        RestartClock();
     }
     return 0;
 }

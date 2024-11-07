@@ -14,10 +14,10 @@ FetchContent_Declare(SFML
 FetchContent_MakeAvailable(SFML)
 
 add_executable(main src/main.cpp 
-src/Snake.cpp headers/Snake.hpp 
-headers/Window.hpp src/Window.cpp 
-headers/World.hpp src/World.cpp 
-headers/Game.hpp src/Game.cpp)
+src/Snake.hpp 
+src/Window.hpp
+src/World.hpp 
+src/Game.hpp)
 target_link_libraries(main PRIVATE sfml-graphics)
 target_compile_features(main PRIVATE cxx_std_17)
 

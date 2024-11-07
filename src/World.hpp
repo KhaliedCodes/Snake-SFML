@@ -1,15 +1,46 @@
-#include "../headers/World.hpp"
-
 #include <string.h>
 
+#include <SFML/Graphics.hpp>
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <string>
+
+#include "Snake.hpp"
 using namespace std;
-World::World(sf::Vector2u l_windSize) {
+
+void World(sf::Vector2u l_windSize);
+int GetBlockSize();
+void RespawnApple();
+void UpdateWorld();
+void RenderWorld(sf::RenderWindow& l_window);
+void ReadWorld();
+void GenerateMovingWalls();
+void RespawnShield();
+void RespawnSlow();
+bool CheckCollisionWithWalls(sf::Vector2i& m);
+void MoveWalls();
+
+sf::Vector2u m_windowSizeWorld;
+sf::Vector2i m_apple;
+sf::Vector2i m_shield;
+sf::Vector2i m_slow;
+sf::Vector2i m_verticalWall;
+sf::Vector2i m_horizontalWall;
+int m_blockSize;
+sf::CircleShape m_appleShape;
+sf::RectangleShape m_shieldShape;
+sf::CircleShape m_slowShape;
+sf::RectangleShape m_bounds[4];
+std::vector<std::vector<RectangleShape*>> grid;
+std::vector<RectangleShape*> m_verticalWallShape;
+std::vector<RectangleShape*> m_horizontalWallShape;
+Direction m_verticalWallDirection;
+Direction m_horizontalWallDirection;
+sf::Clock m_clock;
+void World(sf::Vector2u l_windSize) {
     m_blockSize = 16;
-    m_windowSize = l_windSize;
+    m_windowSizeWorld = l_windSize;
     RespawnApple();
     RespawnShield();
     GenerateMovingWalls();
@@ -25,15 +56,15 @@ World::World(sf::Vector2u l_windSize) {
     for (int i = 0; i < 4; ++i) {
         m_bounds[i].setFillColor(sf::Color(150, 0, 0));
         if (!((i + 1) % 2)) {
-            m_bounds[i].setSize(sf::Vector2f(m_windowSize.x, m_blockSize));
+            m_bounds[i].setSize(sf::Vector2f(m_windowSizeWorld.x, m_blockSize));
         } else {
-            m_bounds[i].setSize(sf::Vector2f(m_blockSize, m_windowSize.y));
+            m_bounds[i].setSize(sf::Vector2f(m_blockSize, m_windowSizeWorld.y));
         }
         if (i < 2) {
             m_bounds[i].setPosition(0, 0);
         } else {
             m_bounds[i].setOrigin(m_bounds[i].getSize());
-            m_bounds[i].setPosition(sf::Vector2f(m_windowSize));
+            m_bounds[i].setPosition(sf::Vector2f(m_windowSizeWorld));
         }
     }
 
@@ -41,9 +72,9 @@ World::World(sf::Vector2u l_windSize) {
     m_clock.restart();
 }
 
-void World::RespawnShield() {
-    int maxX = (m_windowSize.x / m_blockSize) - 2;
-    int maxY = (m_windowSize.y / m_blockSize) - 2;
+void RespawnShield() {
+    int maxX = (m_windowSizeWorld.x / m_blockSize) - 2;
+    int maxY = (m_windowSizeWorld.y / m_blockSize) - 2;
     m_shield = sf::Vector2i(rand() % maxX + 1, rand() % maxY + 1);
     bool overlapped = false;
     do {
@@ -53,9 +84,9 @@ void World::RespawnShield() {
                               m_shield.y * m_blockSize);
 }
 
-void World::RespawnApple() {
-    int maxX = (m_windowSize.x / m_blockSize) - 2;
-    int maxY = (m_windowSize.y / m_blockSize) - 2;
+void RespawnApple() {
+    int maxX = (m_windowSizeWorld.x / m_blockSize) - 2;
+    int maxY = (m_windowSizeWorld.y / m_blockSize) - 2;
     m_apple = sf::Vector2i(rand() % maxX + 1, rand() % maxY + 1);
     bool overlapped = false;
     do {
@@ -65,9 +96,9 @@ void World::RespawnApple() {
     m_appleShape.setPosition(m_apple.x * m_blockSize, m_apple.y * m_blockSize);
 }
 
-void World::RespawnSlow() {
-    int maxX = (m_windowSize.x / m_blockSize) - 2;
-    int maxY = (m_windowSize.y / m_blockSize) - 2;
+void RespawnSlow() {
+    int maxX = (m_windowSizeWorld.x / m_blockSize) - 2;
+    int maxY = (m_windowSizeWorld.y / m_blockSize) - 2;
     m_slow = sf::Vector2i(rand() % maxX + 1, rand() % maxY + 1);
     bool overlapped = false;
     do {
@@ -76,9 +107,9 @@ void World::RespawnSlow() {
     m_slowShape.setPosition(m_slow.x * m_blockSize, m_slow.y * m_blockSize);
 }
 
-bool World::CheckCollisionWithWalls(sf::Vector2i& m) {
-    int maxX = (m_windowSize.x / m_blockSize) - 2;
-    int maxY = (m_windowSize.y / m_blockSize) - 2;
+bool CheckCollisionWithWalls(sf::Vector2i& m) {
+    int maxX = (m_windowSizeWorld.x / m_blockSize) - 2;
+    int maxY = (m_windowSizeWorld.y / m_blockSize) - 2;
     for (int i = 0; i < grid.size(); i++) {
         for (int j = 0; j < grid[i].size(); j++) {
             if (m.x == (grid[i][j]->getPosition().x / m_blockSize) &&
@@ -92,23 +123,23 @@ bool World::CheckCollisionWithWalls(sf::Vector2i& m) {
     return false;
 }
 
-void World::Update(Snake& l_player) {
+void UpdateWorld() {
     MoveWalls();
-    if (l_player.GetPosition() == m_apple) {
+    if (GetSnakePosition() == m_apple) {
         cout << "eated?" << endl;
-        l_player.Extend();
-        l_player.IncreaseScore();
-        l_player.IncreaseSpeed();
+        Extend();
+        IncreaseScore();
+        IncreaseSpeed();
         RespawnApple();
     }
 
-    if (l_player.GetPosition() == m_shield) {
-        l_player.SetShield();
+    if (GetSnakePosition() == m_shield) {
+        SetShield();
         m_shieldShape.setPosition(-111, -111);
         m_shield = sf::Vector2(-111, -111);
     }
-    if (l_player.GetPosition() == m_slow) {
-        l_player.DecreaseSpeed();
+    if (GetSnakePosition() == m_slow) {
+        DecreaseSpeed();
         m_slowShape.setPosition(-111, -111);
         m_slow = sf::Vector2(-111, -111);
     }
@@ -121,17 +152,17 @@ void World::Update(Snake& l_player) {
         m_slowShape.getPosition().x < 0) {
         RespawnSlow();
     }
-    int gridSize_x = m_windowSize.x / m_blockSize;
-    int gridSize_y = m_windowSize.y / m_blockSize;
-    if (l_player.GetPosition().x <= 0 || l_player.GetPosition().y <= 0 ||
-        l_player.GetPosition().x >= gridSize_x - 1 ||
-        l_player.GetPosition().y >= gridSize_y - 1) {
-        if (l_player.HasShield()) {
-            l_player.LoseShield();
-            l_player.SetDirection(Direction::None);
-            l_player.MoveReverse();
+    int gridSize_x = m_windowSizeWorld.x / m_blockSize;
+    int gridSize_y = m_windowSizeWorld.y / m_blockSize;
+    if (GetSnakePosition().x <= 0 || GetSnakePosition().y <= 0 ||
+        GetSnakePosition().x >= gridSize_x - 1 ||
+        GetSnakePosition().y >= gridSize_y - 1) {
+        if (HasShield()) {
+            LoseShield();
+            SetDirection(Direction::None);
+            MoveReverse();
         } else {
-            l_player.Lose();
+            Lose();
             RespawnApple();
             RespawnShield();
             GenerateMovingWalls();
@@ -141,62 +172,62 @@ void World::Update(Snake& l_player) {
 
     for (int i = 0; i < grid.size(); i++) {
         for (int j = 0; j < grid[i].size(); j++) {
-            if (l_player.GetPosition().x ==
+            if (GetSnakePosition().x ==
                     (grid[i][j]->getPosition().x / m_blockSize) &&
-                l_player.GetPosition().y ==
+                GetSnakePosition().y ==
                     (grid[i][j]->getPosition().y / m_blockSize))
-                if (l_player.HasShield()) {
-                    l_player.LoseShield();
-                    l_player.SetDirection(Direction::None);
-                    l_player.MoveReverse();
+                if (HasShield()) {
+                    LoseShield();
+                    SetDirection(Direction::None);
+                    MoveReverse();
                 } else {
                     GenerateMovingWalls();
                     RespawnApple();
                     RespawnShield();
                     m_clock.restart();
-                    l_player.Lose();
+                    Lose();
                 }
         }
     }
     for (int i = 0; i < m_verticalWallShape.size(); i++) {
-        for (int j = 0; j < l_player.GetSnakeBody().size(); j++) {
-            if (l_player.GetSnakeBody()[j].position.x ==
+        for (int j = 0; j < GetSnakeBody().size(); j++) {
+            if (GetSnakeBody()[j].position.x ==
                     (m_verticalWallShape[i]->getPosition().x / m_blockSize) &&
-                l_player.GetSnakeBody()[j].position.y ==
+                GetSnakeBody()[j].position.y ==
                     (m_verticalWallShape[i]->getPosition().y / m_blockSize))
-                if (l_player.HasShield()) {
-                    l_player.LoseShield();
-                    l_player.SetDirection(Direction::None);
-                    l_player.MoveReverse();
+                if (HasShield()) {
+                    LoseShield();
+                    SetDirection(Direction::None);
+                    MoveReverse();
                 } else {
                     RespawnApple();
                     RespawnShield();
                     m_clock.restart();
-                    l_player.Lose();
+                    Lose();
                 }
         }
     }
     for (int i = 0; i < m_horizontalWallShape.size(); i++) {
-        for (int j = 0; j < l_player.GetSnakeBody().size(); j++) {
-            if (l_player.GetSnakeBody()[j].position.x ==
+        for (int j = 0; j < GetSnakeBody().size(); j++) {
+            if (GetSnakeBody()[j].position.x ==
                     (m_horizontalWallShape[i]->getPosition().x / m_blockSize) &&
-                l_player.GetSnakeBody()[j].position.y ==
+                GetSnakeBody()[j].position.y ==
                     (m_horizontalWallShape[i]->getPosition().y / m_blockSize))
-                if (l_player.HasShield()) {
-                    l_player.LoseShield();
-                    l_player.SetDirection(Direction::None);
-                    l_player.MoveReverse();
+                if (HasShield()) {
+                    LoseShield();
+                    SetDirection(Direction::None);
+                    MoveReverse();
                 } else {
                     RespawnApple();
                     RespawnShield();
                     m_clock.restart();
-                    l_player.Lose();
+                    Lose();
                 }
         }
     }
 }
 
-void World::Render(sf::RenderWindow& l_window) {
+void RenderWorld(sf::RenderWindow& l_window) {
     for (int i = 0; i < 4; ++i) {
         l_window.draw(m_bounds[i]);
     }
@@ -211,15 +242,14 @@ void World::Render(sf::RenderWindow& l_window) {
             l_window.draw((*grid[i][j]));
         }
     }
-    l_window.draw(m_appleShape, sf::BlendAdd);
-    l_window.draw(m_shieldShape, sf::BlendAdd);
-    l_window.draw(m_slowShape, sf::BlendAdd);
+    l_window.draw(m_appleShape);
+    l_window.draw(m_shieldShape);
+    l_window.draw(m_slowShape);
 }
 
-int World::GetBlockSize() { return m_blockSize; }
-World::~World() {}
+int GetBlockSize() { return m_blockSize; }
 
-void World::ReadWorld() {
+void ReadWorld() {
     const string& path = "../static/grid.txt";
     ifstream myfile(path, ios_base::in);
 
@@ -231,9 +261,10 @@ void World::ReadWorld() {
     string line;
     int row = 0;
     int winY = 0;
-    while (getline(myfile, line) && winY < m_windowSize.y) {
+    while (getline(myfile, line) && winY < m_windowSizeWorld.y) {
         grid.push_back(std::vector<RectangleShape*>());
-        for (int col = 0, winX = 0; winX < m_windowSize.x && line[col] != '\0';
+        for (int col = 0, winX = 0;
+             winX < m_windowSizeWorld.x && line[col] != '\0';
              col++, winX += m_blockSize) {
             if (line[col] == '#') {
                 auto block = new RectangleShape();
@@ -250,11 +281,11 @@ void World::ReadWorld() {
     myfile.close();
 }
 
-void World::GenerateMovingWalls() {
+void GenerateMovingWalls() {
     m_verticalWallShape.clear();
     m_horizontalWallShape.clear();
-    int maxX = (m_windowSize.x / m_blockSize) - 2;
-    int maxY = (m_windowSize.y / m_blockSize) - 2;
+    int maxX = (m_windowSizeWorld.x / m_blockSize) - 2;
+    int maxY = (m_windowSizeWorld.y / m_blockSize) - 2;
     m_verticalWall = sf::Vector2i(rand() % maxX + 1, rand() % maxY + 1);
     auto block = new RectangleShape();
     (*block).setSize(sf::Vector2f(m_blockSize, m_blockSize));
@@ -291,7 +322,7 @@ void World::GenerateMovingWalls() {
         (*block).setFillColor(sf::Color(150, 0, 0));
     }
 }
-void World::MoveWalls() {
+void MoveWalls() {
     if (m_verticalWallDirection == Direction::Down) {
         (*m_verticalWallShape.back())
             .setPosition(Vector2f(
@@ -305,7 +336,7 @@ void World::MoveWalls() {
                                  m_blockSize));
         }
         if (((*m_verticalWallShape.back()).getPosition().y + m_blockSize >=
-             m_windowSize.y)) {
+             m_windowSizeWorld.y)) {
             m_verticalWallDirection = Direction::Up;
         }
     }
@@ -340,7 +371,7 @@ void World::MoveWalls() {
                              (*m_horizontalWallShape[i + 1]).getPosition().y));
         }
         if (((*m_horizontalWallShape.back()).getPosition().x + m_blockSize >=
-             m_windowSize.x)) {
+             m_windowSizeWorld.x)) {
             m_horizontalWallDirection = Direction::Left;
         }
     }

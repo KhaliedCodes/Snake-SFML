@@ -1,13 +1,59 @@
-#include "../headers/Snake.hpp"
-Snake::Snake(int l_blockSize) {
+#include <SFML/Graphics.hpp>
+#include <iostream>
+#ifndef SNAKE_H
+#define SNAKE_H
+enum class Direction { None, Up, Down, Left, Right };
+struct SnakeSegment {
+    SnakeSegment(int x, int y) : position(x, y) {}
+    sf::Vector2i position;
+};
+using namespace sf;
+using SnakeContainer = std::vector<SnakeSegment>;
+void Snake(int l_blockSize);
+// Helper methods.
+void SetDirection(Direction l_dir);
+Direction GetDirection();
+int GetSpeed();
+sf::Vector2i GetPosition();
+int GetLives();
+int GetScore();
+void IncreaseScore();
+bool HasLost();
+bool HasShield();
+void Lose();  // Handle losing here.
+void ToggleLost();
+void Extend();             // Grow the snake.
+void Reset();              // Reset to starting position.
+void Move();               // Movement method.
+void Tick();               // Update method.
+void Cut(int l_segments);  // Method for cutting snake.
+void Render(sf::RenderWindow& l_window);
+void SetShield();
+void LoseShield();
+void MoveReverse();
+void IncreaseSpeed();
+void DecreaseSpeed();
+void CheckCollision();
+void DisplayScore(sf::RenderWindow& l_window);
+SnakeContainer GetSnakeBody();
+SnakeContainer m_snakeBody;  // Segment vector.
+int m_size;                  // Size of the graphics.
+Direction m_dir;             // Current direction.
+int m_speed;                 // Speed of the snake.
+int m_lives;                 // Lives.
+int m_score;                 // Score.
+bool m_lost;                 // Losing state.
+bool shield;
+sf::RectangleShape m_bodyRect;  // Shape used in rendering.
+
+void Snake(int l_blockSize) {
     m_size = l_blockSize;
     m_bodyRect.setSize(sf::Vector2f(m_size - 1, m_size - 1));
     Reset();
 }
-Snake::~Snake() {}
 
-void Snake::SetDirection(Direction l_dir) { m_dir = l_dir; }
-void Snake::Reset() {
+void SetDirection(Direction l_dir) { m_dir = l_dir; }
+void Reset() {
     m_snakeBody.clear();
     m_snakeBody.push_back(SnakeSegment(5, 7));
     m_snakeBody.push_back(SnakeSegment(5, 6));
@@ -20,20 +66,20 @@ void Snake::Reset() {
     shield = false;
 }
 
-Direction Snake::GetDirection() { return m_dir; }
-int Snake::GetSpeed() { return m_speed; }
-sf::Vector2i Snake::GetPosition() {
+Direction GetDirection() { return m_dir; }
+int GetSpeed() { return m_speed; }
+sf::Vector2i GetSnakePosition() {
     return (!m_snakeBody.empty() ? m_snakeBody.front().position
                                  : sf::Vector2i(1, 1));
 }
-int Snake::GetLives() { return m_lives; }
-int Snake::GetScore() { return m_score; }
-void Snake::IncreaseScore() { m_score += 10; }
-bool Snake::HasLost() { return m_lost; }
-void Snake::Lose() { m_lost = true; }
-void Snake::ToggleLost() { m_lost = !m_lost; }
+int GetLives() { return m_lives; }
+int GetScore() { return m_score; }
+void IncreaseScore() { m_score += 10; }
+bool HasLost() { return m_lost; }
+void Lose() { m_lost = true; }
+void ToggleLost() { m_lost = !m_lost; }
 
-void Snake::Extend() {
+void Extend() {
     if (m_snakeBody.empty()) {
         return;
     }
@@ -74,7 +120,7 @@ void Snake::Extend() {
     }
 }
 
-void Snake::Tick() {
+void Tick() {
     if (m_snakeBody.empty()) {
         return;
     }
@@ -85,7 +131,7 @@ void Snake::Tick() {
     CheckCollision();
 }
 
-void Snake::Move() {
+void Move() {
     for (int i = m_snakeBody.size() - 1; i > 0; --i) {
         m_snakeBody[i].position = m_snakeBody[i - 1].position;
     }
@@ -100,13 +146,13 @@ void Snake::Move() {
     }
 }
 
-void Snake::MoveReverse() {
+void MoveReverse() {
     for (int i = 0; i < m_snakeBody.size() - 1; ++i) {
         m_snakeBody[i].position = m_snakeBody[i + 1].position;
     }
 }
 
-void Snake::CheckCollision() {
+void CheckCollision() {
     if (m_snakeBody.size() < 5) {
         return;
     }
@@ -120,14 +166,14 @@ void Snake::CheckCollision() {
     }
 }
 
-void Snake::Cut(int l_segments) {
+void Cut(int l_segments) {
     for (int i = 0; i < l_segments; ++i) {
         m_snakeBody.pop_back();
     }
     m_score /= 2;
 }
 
-void Snake::Render(sf::RenderWindow& l_window) {
+void RenderSnake(sf::RenderWindow& l_window) {
     if (m_snakeBody.empty()) {
         return;
     }
@@ -152,19 +198,19 @@ void Snake::Render(sf::RenderWindow& l_window) {
     }
 }
 
-bool Snake::HasShield() { return shield; }
+bool HasShield() { return shield; }
 
-void Snake::SetShield() { shield = true; }
+void SetShield() { shield = true; }
 
-void Snake::LoseShield() { shield = false; }
+void LoseShield() { shield = false; }
 
-void Snake::IncreaseSpeed() { m_speed++; }
-void Snake::DecreaseSpeed() {
+void IncreaseSpeed() { m_speed++; }
+void DecreaseSpeed() {
     m_speed -= 5;
     m_speed < 10 ? m_speed = 10 : m_speed;
 }
 
-void Snake::DisplayScore(sf::RenderWindow& l_window) {
+void DisplayScore(sf::RenderWindow& l_window) {
     sf::Font font;
     if (!font.loadFromFile("../static/perpetua.ttf")) return;
 
@@ -191,4 +237,5 @@ void Snake::DisplayScore(sf::RenderWindow& l_window) {
     l_window.draw(speedText);
 }
 
-SnakeContainer Snake::GetSnakeBody() { return m_snakeBody; }
+SnakeContainer GetSnakeBody() { return m_snakeBody; }
+#endif
